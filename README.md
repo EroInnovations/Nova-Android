@@ -1,2 +1,2 @@
-# Nova-Android
-Frame Work For Building Android Apps Using Nova For Elite Robust Ontology
+# COMPOSE NATIVE
+# Frame Work From Parent Company(E-corp Company Group) for building  Native Over The Air Updates

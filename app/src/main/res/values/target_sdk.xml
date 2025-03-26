@@ -1,0 +1,3 @@
+<resources>
+    <integer name="target_sdk_version">34</integer>
+</resources>
