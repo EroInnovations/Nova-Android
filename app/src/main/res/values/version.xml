@@ -1,0 +1,9 @@
+<resources>
+
+    <!-- Define the version code -->
+    <integer name="version_code">1</integer>
+
+    <!-- Define the version name -->
+    <string name="version_name">1.o</string>
+
+</resources>

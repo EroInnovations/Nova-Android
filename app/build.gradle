@@ -1,0 +1,100 @@
+apply plugin: 'com.android.application'
+
+import org.gradle.api.GradleException
+
+// Task to update package name in Java files
+task updatePackageName {
+    doLast {
+        // Read package name from config.xml
+        def configXmlFile = file('src/main/res/values/config.xml')
+        def packageName
+
+        if (configXmlFile.exists()) {
+            def configXml = new XmlSlurper().parse(configXmlFile)
+            packageName = configXml.string.find { it.@name == 'package_name' }?.text()
+        } else {
+            throw new GradleException("config.xml not found at: ${configXmlFile.absolutePath}")
+        }
+
+        // Update package name in Java files
+        fileTree(dir: 'src/main/java', include: '**/*.java').each { file ->
+            file.text = file.text.replaceAll('package\\s+[^;]+;', 'package ' + packageName + ';')
+        }
+    }
+}
+
+android {
+    // Read compileSdkVersion from compile_sdk.xml
+    def compileSdkVersionValue = readSdkVersion('compile_sdk.xml')
+    compileSdkVersion compileSdkVersionValue
+
+    // Read package name from config.xml
+    def configXmlFile = file('src/main/res/values/config.xml')
+    def packageName
+
+    if (configXmlFile.exists()) {
+        def configXml = new XmlSlurper().parse(configXmlFile)
+        packageName = configXml.string.find { it.@name == 'package_name' }?.text()
+    } else {
+        throw new GradleException("config.xml not found at: ${configXmlFile.absolutePath}")
+    }
+
+    defaultConfig {
+        applicationId packageName
+        minSdkVersion readSdkVersion('min_sdk.xml')
+        targetSdkVersion readSdkVersion('target_sdk.xml')
+
+        // Set the namespace based on package name
+        namespace packageName
+
+        // Read version code and version name from version.xml
+        def versionXml = new XmlSlurper().parse(file('src/main/res/values/version.xml'))
+        versionCode versionXml.integer.find { it.@name == 'version_code' }.text().toInteger()
+        versionName versionXml.string.find { it.@name == 'version_name' }.text()
+
+        // Set package name for Java files
+        buildConfigField "String", "PACKAGE_NAME", "\"$packageName\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),'proguard-rules.pro'
+        }
+    }
+
+    // Read keystore configurations from keystore.xml
+    def keystoreXml = new XmlSlurper().parse(file('src/main/res/values/keystore.xml'))
+    signingConfigs {
+        release {
+            storeFile file(keystoreXml.string.find { it.@name == 'keystore_path' }.text())
+            storePassword keystoreXml.string.find { it.@name == 'keystore_password' }.text()
+            keyAlias keystoreXml.string.find { it.@name == 'key_alias' }.text()
+            keyPassword keystoreXml.string.find { it.@name == 'key_password' }.text()
+        }
+    }
+    buildTypes.release.signingConfig = signingConfigs.release
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.4.0'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
+
+// Execute updatePackageName task before each build
+preBuild.dependsOn updatePackageName
+
+// Function to read SDK version from XML files
+def readSdkVersion(String fileName) {
+    def sdkXmlFile = file("src/main/res/values/${fileName}")
+    if (sdkXmlFile.exists()) {
+        def sdkXml = new XmlSlurper().parse(sdkXmlFile)
+        return sdkXml.integer.text().toInteger()
+    } else {
+        throw new GradleException("${fileName} not found at: ${sdkXmlFile.absolutePath}")
+    }
+}
